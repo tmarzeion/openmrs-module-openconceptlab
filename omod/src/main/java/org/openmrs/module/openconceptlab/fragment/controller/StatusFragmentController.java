@@ -35,7 +35,9 @@ public class StatusFragmentController {
 							@RequestParam(required = false, value = "ignoreErrors") Boolean ignoreErrors) throws IOException {
 		
 		Update update = updateService.getLastUpdate();
-		updateService.ignoreAllErrors(update);
+		if (update != null) {
+			updateService.ignoreAllErrors(update);
+		}
 		updateScheduler.scheduleNow();
 	}
 }

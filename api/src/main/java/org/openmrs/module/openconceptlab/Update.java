@@ -41,6 +41,10 @@ public class Update {
 	@Basic
 	@Column(name = "ocl_date_started")
 	private Date oclDateStarted;
+
+	@Basic
+	@Column(name = "last_downloaded_release")
+	private String lastDownloadedRelease;
 	
 	@Basic
 	@Column(name = "error_message")
@@ -68,6 +72,14 @@ public class Update {
 	
 	public void setOclDateStarted(Date oclDateStarted) {
 		this.oclDateStarted = oclDateStarted;
+	}
+
+	public String getLastDownloadedRelease() {
+		return lastDownloadedRelease;
+	}
+
+	public void setLastDownloadedRelease(String lastDownloadedRelease) {
+		this.lastDownloadedRelease = lastDownloadedRelease;
 	}
 	
     public String getErrorMessage() {

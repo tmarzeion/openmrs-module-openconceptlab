@@ -25,7 +25,9 @@ public class Subscription {
 	private Integer hours = 0;
 	
 	private Integer minutes = 0;
-	
+
+	private boolean isFetchingSnapshotUpdates = true;
+
 	public Subscription() {
 		
 	}
@@ -72,6 +74,14 @@ public class Subscription {
 	
 	public boolean isManual() {
 		return (days == null && hours == null && minutes == null) || (days == 0 && hours == 0 && minutes == 0);
+	}
+
+	public boolean isFetchingSnapshotUpdates() {
+		return isFetchingSnapshotUpdates;
+	}
+
+	public void setIsFetchingSnapshotUpdates(boolean isFetchingSnapshotUpdates) {
+		this.isFetchingSnapshotUpdates = isFetchingSnapshotUpdates;
 	}
 	
 	public boolean isSubscribed() {

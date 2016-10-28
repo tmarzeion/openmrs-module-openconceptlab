@@ -177,7 +177,14 @@ public class UpdateServiceImpl implements UpdateService {
 
 	@Override
 	public Boolean isLastUpdateSuccessful(){
-		return getLastSuccessfulSubscriptionUpdate().equals(getLastUpdate());
+		Update lastSuccessfulSubscriptionUpdate = getLastSuccessfulSubscriptionUpdate();
+		if (lastSuccessfulSubscriptionUpdate != null) {
+			Update lastUpdate = getLastUpdate();
+			return lastSuccessfulSubscriptionUpdate.equals(lastUpdate);
+		}
+		else {
+			return false;
+		}
 	}
 	
 	@Override
@@ -224,6 +231,12 @@ public class UpdateServiceImpl implements UpdateService {
 	@Override
 	public void updateOclDateStarted(Update update, Date oclDateStarted) {
 		update.setOclDateStarted(oclDateStarted);
+		getSession().save(update);
+	}
+
+	@Override
+	public void updateLatestDownloadedRelease(Update update, String version) {
+		update.setLastDownloadedRelease(version);
 		getSession().save(update);
 	}
 

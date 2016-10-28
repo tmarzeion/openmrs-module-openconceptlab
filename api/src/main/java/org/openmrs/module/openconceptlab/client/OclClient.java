@@ -38,8 +38,6 @@ import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.openmrs.util.OpenmrsUtil;
 
@@ -67,7 +65,7 @@ public class OclClient {
 		this.dataDirectory = dataDirectory;
 	}
 	
-	public OclResponse fetchUpdates(String url, String token, Date updatedSince) throws IOException {
+	public OclResponse fetchSnapshotUpdates(String url, String token, Date updatedSince) throws IOException {
 		totalBytesToDownload = -1; //unknown yet
 		bytesDownloaded = 0;
 		
@@ -101,15 +99,15 @@ public class OclClient {
 		return extractResponse(get);
 	}
 	
-	public OclResponse fetchInitialUpdates(String url, String token) throws IOException, HttpException {
+	public OclResponse fetchReleaseUpdates(String url, String token) throws IOException {
 		totalBytesToDownload = -1; //unknown yet
 		bytesDownloaded = 0;
 		
 		if (url.endsWith("/")) {
 			url = url.substring(0, url.length() - 1);
 		}
-		
-		String latestVersion = fetchLatestVersion(url, token);
+
+		String latestVersion = fetchLatestOclReleaseVersion(url, token);
 		
 		String exportUrl = fetchExportUrl(url, token, latestVersion);
 		
@@ -125,7 +123,18 @@ public class OclClient {
 		
 		return extractResponse(exportUrlGet);
     }
-	
+
+	public OclResponse fetchReleaseUpdates(String url, String token, String lastDownloadedReleaseVersion) throws IOException {
+		String latestOclReleaseVersion = fetchLatestOclReleaseVersion(url, token);
+		if (!lastDownloadedReleaseVersion.equals(latestOclReleaseVersion)) {
+			return fetchReleaseUpdates(url, token);
+		}
+		else {
+			//TODO exception, notification?
+			return null;
+		}
+	}
+
 	/**
 	 * @should extract date and json
 	 */
@@ -314,8 +323,7 @@ public class OclClient {
 	    return exportUrl;
     }
 
-	private String fetchLatestVersion(String url, String token) throws IOException, HttpException, JsonParseException,
-            JsonMappingException {
+	public String fetchLatestOclReleaseVersion(String url, String token) throws IOException {
 	    String latestVersionUrl = url + "/latest";
 		
 		GetMethod latestVersionGet = new GetMethod(latestVersionUrl);

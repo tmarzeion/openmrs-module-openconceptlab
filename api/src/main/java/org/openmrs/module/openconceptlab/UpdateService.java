@@ -57,6 +57,8 @@ public interface UpdateService {
     @Transactional
 	void updateOclDateStarted(Update update, Date oclDateStarted);
 
+	void updateLatestDownloadedRelease(Update update, String version);
+
 	/**
 	 * @should throw IllegalArgumentException if not scheduled
 	 * @should throw IllegalStateException if trying to stop twice

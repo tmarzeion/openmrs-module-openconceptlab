@@ -105,41 +105,55 @@ public class Updater implements Runnable {
 
 			@Override
 			public void run() {
-				runAndHandleErrors(new Task() {
-
-					@Override
-					public void run() throws Exception {
-						Subscription subscription = updateService.getSubscription();
-						Update lastUpdate = updateService.getLastSuccessfulSubscriptionUpdate();
-						Date updatedSince = null;
-						if (lastUpdate != null) {
-							updatedSince = lastUpdate.getOclDateStarted();
-						}
-
-						OclResponse oclResponse;
-						
-						if (updatedSince == null) {
-							oclResponse = oclClient.fetchInitialUpdates(subscription.getUrl(), subscription.getToken());
-						} else {
-							oclResponse = oclClient.fetchUpdates(subscription.getUrl(), subscription.getToken(),
-							    updatedSince);
-						}
-
-						updateService.updateOclDateStarted(update, oclResponse.getUpdatedTo());
-
-						in = new CountingInputStream(oclResponse.getContentStream());
-						totalBytesToProcess = oclResponse.getContentLength();
-
-						processInput();
-
-						in.close();
-					}
-				});
-			}
+                runTask();
+            }
 		}, OpenConceptLabActivator.getDaemonToken());
 	}
 
-	/**
+    public void runTask() {
+        runAndHandleErrors(new Task() {
+
+            @Override
+            public void run() throws Exception {
+                Subscription subscription = updateService.getSubscription();
+                Update lastUpdate = updateService.getLastSuccessfulSubscriptionUpdate();
+                Date updatedSince = null;
+                if (lastUpdate != null) {
+                    updatedSince = lastUpdate.getOclDateStarted();
+                }
+
+                OclResponse oclResponse;
+
+                if (updatedSince == null) {
+                    oclResponse = oclClient.fetchReleaseUpdates(subscription.getUrl(), subscription.getToken());
+                    updateService.updateLatestDownloadedRelease(update,
+                            oclClient.fetchLatestOclReleaseVersion(subscription.getUrl(), subscription.getToken()));
+                } else {
+                    //TODO isFetchingSnapshotUpdates() is controlled via UI
+                    if (subscription.isFetchingSnapshotUpdates()) {
+                        oclResponse = oclClient.fetchSnapshotUpdates(subscription.getUrl(), subscription.getToken(),
+                                updatedSince);
+                    }
+                    else {
+                        oclResponse = oclClient.fetchReleaseUpdates(subscription.getUrl(), subscription.getToken(), lastUpdate.getLastDownloadedRelease());
+                        updateService.updateLatestDownloadedRelease(update,
+                                oclClient.fetchLatestOclReleaseVersion(subscription.getUrl(), subscription.getToken()));
+                    }
+                }
+
+                updateService.updateOclDateStarted(update, oclResponse.getUpdatedTo());
+
+                in = new CountingInputStream(oclResponse.getContentStream());
+                totalBytesToProcess = oclResponse.getContentLength();
+
+                processInput();
+
+                in.close();
+            }
+        });
+    }
+
+    /**
 	 * It can be used to run update from the given input e.g. from a resource bundled with a module.
 	 * <p>
 	 * It does not require any subscription to be setup.

@@ -9,34 +9,44 @@
  */
 package org.openmrs.module.openconceptlab;
 
+import org.apache.commons.io.FileUtils;
+import org.hamcrest.Matcher;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.Mock;
+import org.openmrs.Concept;
+import org.openmrs.ConceptName;
+import org.openmrs.api.ConceptNameType;
+import org.openmrs.api.ConceptService;
+import org.openmrs.module.openconceptlab.client.OclClient;
+import org.openmrs.module.openconceptlab.updater.Updater;
+import org.openmrs.test.BaseModuleContextSensitiveTest;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.io.File;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-
-import org.hamcrest.Matcher;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.openmrs.Concept;
-import org.openmrs.ConceptName;
-import org.openmrs.api.ConceptNameType;
-import org.openmrs.api.ConceptService;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
-import org.springframework.beans.factory.annotation.Autowired;
+import static org.mockito.Mockito.when;
 
 public class UpdateServiceTest extends BaseModuleContextSensitiveTest {
 
 	@Autowired
-	UpdateService updateService;
+	private UpdateService updateService;
 
-	@Autowired
-	ConceptService conceptService;
+    @Mock
+    private UpdateService mockedUpdateService;
+
+    @Autowired
+    private ConceptService conceptService;
 
 	@Rule
 	public ExpectedException exception = ExpectedException.none();
@@ -142,6 +152,102 @@ public class UpdateServiceTest extends BaseModuleContextSensitiveTest {
 		assertThat(subscription, is(newSubscription));
 	}
 
+    /*
+     * TODO:
+     * These ignored tests are working fine,
+     * but it takes too much time to finish them
+     * since tests are downloading data from real OCL.
+     * This issue will be fixed when there will be prepared
+     * test data, which will be easier to fetch.
+     */
+    @Ignore("This test is used for update simulation")
+	@Test
+	public void startUpdate_shouldStartInitialUpdate() throws Exception {
+		Subscription newSubscription = new Subscription();
+		newSubscription.setUrl("http://api.openconceptlab.com/orgs/CIEL/sources/CIEL/");
+		newSubscription.setToken("41062d8fd2bcf5eb5457988bbe2dcb5446a80a07");
+
+		updateService.saveSubscription(newSubscription);
+        Updater updater = new Updater();
+
+        File tempDir = File.createTempFile("ocl", "");
+        FileUtils.deleteQuietly(tempDir);
+        tempDir.deleteOnExit();
+        OclClient oclClient = new OclClient(tempDir.getAbsolutePath());
+
+        updater.setOclClient(oclClient);
+        updater.setUpdateService(updateService);
+
+        updater.runTask();
+	}
+
+    @Ignore("This test is used for update simulation")
+    @Test
+    public void startUpdate_shouldStartReleaseUpdate() throws Exception {
+        Subscription subscription = new Subscription();
+        subscription.setUrl("http://api.openconceptlab.com/orgs/CIEL/sources/CIEL/");
+        subscription.setToken("41062d8fd2bcf5eb5457988bbe2dcb5446a80a07");
+        subscription.setIsFetchingSnapshotUpdates(false);
+
+        Update update = new Update();
+        update.setErrorMessage(null);
+        update.setOclDateStarted(new Date());
+        update.setLastDownloadedRelease("some_outdated_version_v4.2.0");
+
+        when(mockedUpdateService.getSubscription()).thenReturn(subscription);
+        when(mockedUpdateService.getLastSuccessfulSubscriptionUpdate()).thenReturn(update);
+
+        File tempDir = File.createTempFile("ocl", "");
+        FileUtils.deleteQuietly(tempDir);
+        tempDir.deleteOnExit();
+        OclClient oclClient = new OclClient(tempDir.getAbsolutePath());
+
+        Updater updater = new Updater();
+
+        updater.setOclClient(oclClient);
+        updater.setUpdateService(mockedUpdateService);
+
+        updater.runTask();
+    }
+
+    @Ignore("This test is used for update simulation")
+    @Test
+    public void startUpdate_shouldStartSnapshotUpdate() throws Exception {
+        Subscription subscription = new Subscription();
+        subscription.setUrl("http://api.openconceptlab.com/orgs/CIEL/sources/CIEL/");
+        subscription.setToken("41062d8fd2bcf5eb5457988bbe2dcb5446a80a07");
+        subscription.setIsFetchingSnapshotUpdates(true);
+
+        Update update = new Update();
+        update.setErrorMessage(null);
+        update.setOclDateStarted(new Date());
+        update.setLastDownloadedRelease("some_outdated_version_v4.2.0");
+
+        when(mockedUpdateService.getSubscription()).thenReturn(subscription);
+        when(mockedUpdateService.getLastSuccessfulSubscriptionUpdate()).thenReturn(update);
+
+        File tempDir = File.createTempFile("ocl", "");
+        FileUtils.deleteQuietly(tempDir);
+        tempDir.deleteOnExit();
+        OclClient oclClient = new OclClient(tempDir.getAbsolutePath());
+
+        Updater updater = new Updater();
+
+        updater.setOclClient(oclClient);
+        updater.setUpdateService(mockedUpdateService);
+
+        updater.runTask();
+    }
+
+    @Test
+    public void update_shouldUpdateLatestDownloadedRelease() throws Exception {
+        Update update = new Update();
+        update.setOclDateStarted(new Date());
+        final String version = "v1.2";
+        updateService.updateLatestDownloadedRelease(update, version);
+        assertThat(version, is(updateService.getLastSuccessfulSubscriptionUpdate().getLastDownloadedRelease()));
+    }
+
 	@Test
 	public void getDuplicateConceptNames_shoudlFindDuplicates() throws Exception {
 		Concept concept = new Concept();
@@ -164,4 +270,6 @@ public class UpdateServiceTest extends BaseModuleContextSensitiveTest {
 		List<ConceptName> duplicateOclNames = updateService.changeDuplicateConceptNamesToIndexTerms(conceptToImport);
 		assertThat(duplicateOclNames, contains((Matcher<? super ConceptName>) hasProperty("name", is("Rubella Viêm não"))));
 	}
+
+
 }

@@ -143,5 +143,17 @@
     		<column name="openconceptlab_updated_on" type="datetime"/>
     	</addColumn>
     </changeSet>
-    
+
+    <changeSet author="tomaszmarzeion" id="openconceptlab-v1-12">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="openconceptlab_update" columnName="last_downloaded_release"/>
+            </not>
+        </preConditions>
+        <comment>Create last_downloaded_release - See OCLM-38 for details</comment>
+        <addColumn tableName="openconceptlab_update">
+            <column name="last_downloaded_release" type="varchar(512)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
